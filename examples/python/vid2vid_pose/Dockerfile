@@ -22,10 +22,24 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install rerun
-RUN pip3 install git+https://github.com/rerun-io/rerun.git@main#subdirectory=rerun_py
+# RUN pip3 install git+https://github.com/rerun-io/rerun.git@main#subdirectory=rerun_py
+
+# Install binaryen
+RUN git clone --recursive https://github.com/WebAssembly/binaryen.git && \
+    cd binaryen && \
+    cmake . && \
+    make && \
+    make install
+
+# Install rerun with web_viewer feature
+RUN git clone https://github.com/rerun-io/rerun.git && \
+    cd rerun/rerun_py && \
+    cargo build --release --features "web_viewer" && \
+    pip3 install .
 
 # Copy main.py into the Docker image
 COPY huggingface_pipeline.py .
 COPY main.py .
+COPY main_pose.py .
 
-# CMD ["python3", "main.py"]
+CMD ["python3", "main.py"]

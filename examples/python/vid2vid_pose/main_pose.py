@@ -151,6 +151,10 @@ def main() -> None:
     rr.script_add_args(parser)
 
     args = parser.parse_args()
+    # Add to args namespace
+    # args.connect = True
+    # args.addr = "0.0.0.0:9876"
+    args.serve = True
     rr.script_setup(args, "rerun_example_human_pose_tracking")
 
     video_path = args.video_path  # type: str
