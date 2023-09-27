@@ -13,4 +13,5 @@ docker run \
 -v ${CKPT_PATH}:/workspace/ckpt \
 -v ${LOGS_PATH}:/workspace/logs \
 rerun/vid2vid \
-python3 main_diff.py
+/bin/bash
+# python3 main.py

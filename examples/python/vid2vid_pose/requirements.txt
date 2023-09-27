@@ -7,7 +7,7 @@ opencv-python<4.6 # Avoid opencv-4.6 since it rotates images incorrectly (https:
 packaging
 pillow
 requests>=2.31,<3
-rerun-sdk
+# rerun-sdk==0.8.2 # TODO: This doesn't work???
 scipy
 torch>=1.13.0
 transformers>=4.26.0
