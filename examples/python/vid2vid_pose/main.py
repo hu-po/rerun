@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import platform
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,12 @@ import numpy as np
 import numpy.typing as npt
 import requests
 import rerun as rr  # pip install rerun-sdk
+import torch
+from huggingface_pipeline import StableDiffusionDepth2ImgPipeline
+from PIL import Image
+
+if platform.system() == "Darwin":
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 EXAMPLE_DIR: Final = Path(os.path.dirname(__file__))
 DATASET_DIR: Final = EXAMPLE_DIR / "dataset" / "pose_movement"
