@@ -21,13 +21,6 @@ import torch
 from huggingface_pipeline import StableDiffusionDepth2ImgPipeline
 from PIL import Image
 
-if platform.system() == "Darwin":
-    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
-
-EXAMPLE_DIR: Final = Path(os.path.dirname(__file__))
-DATASET_DIR: Final = EXAMPLE_DIR / "dataset" / "pose_movement"
-DATASET_URL_BASE: Final = "https://storage.googleapis.com/rerun-example-datasets/pose_movement"
-
 
 def track_pose(video_path: str, segment: bool) -> None:
     mp_pose = mp.solutions.pose
@@ -120,52 +113,19 @@ class VideoSource:
             yield VideoFrame(data=bgr, time=time_ms * 1e-3, idx=idx)
 
 
-def get_downloaded_path(dataset_dir: Path, video_name: str) -> str:
-    video_file_name = f"{video_name}.mp4"
-    destination_path = dataset_dir / video_file_name
-    if destination_path.exists():
-        logging.info("%s already exists. No need to download", destination_path)
-        return str(destination_path)
-
-    source_path = f"{DATASET_URL_BASE}/{video_file_name}"
-
-    logging.info("Downloading video from %s to %s", source_path, destination_path)
-    os.makedirs(dataset_dir.absolute(), exist_ok=True)
-    with requests.get(source_path, stream=True) as req:
-        req.raise_for_status()
-        with open(destination_path, "wb") as f:
-            for chunk in req.iter_content(chunk_size=8192):
-                f.write(chunk)
-    return str(destination_path)
-
-
 def main() -> None:
     # Ensure the logging gets written to stderr:
     logging.getLogger().addHandler(logging.StreamHandler())
     logging.getLogger().setLevel("INFO")
 
     parser = argparse.ArgumentParser(description="Uses the MediaPipe Pose solution to track a human pose in video.")
-    parser.add_argument(
-        "--video",
-        type=str,
-        default="backflip",
-        choices=["backflip", "soccer"],
-        help="The example video to run on.",
-    )
-    parser.add_argument("--dataset_dir", type=Path, default=DATASET_DIR, help="Directory to save example videos to.")
-    parser.add_argument("--video_path", type=str, default="", help="Full path to video to run on. Overrides `--video`.")
+    parser.add_argument("--video_path", type=str, default="data/test.mp4", help="Full path to video to run on.")
     parser.add_argument("--no-segment", action="store_true", help="Don't run person segmentation.")
     rr.script_add_args(parser)
 
     args = parser.parse_args()
     rr.script_setup(args, "rerun_example_human_pose_tracking")
-
-    video_path = args.video_path  # type: str
-    if not video_path:
-        video_path = get_downloaded_path(args.dataset_dir, args.video)
-
-    track_pose(video_path, segment=not args.no_segment)
-
+    track_pose(args.video_path, segment=not args.no_segment)
     rr.script_teardown(args)
 
 
