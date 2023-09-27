@@ -1,12 +1,16 @@
 # Start from the pytorch image
-FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
-# FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
+
+# Older version if needed
+# FROM pytorch/pytorch:1.13.1-cuda11.6-cudnn8-runtime
 
 # Install system tools, build tools, and git
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
-    curl
+    curl \
+    libgl1-mesa-glx \
+    libglib2.0-0
 
 # Copy requirements.txt and install the dependencies
 COPY requirements.txt .
