@@ -21,8 +21,11 @@ import torch
 from huggingface_pipeline import StableDiffusionDepth2ImgPipeline
 from PIL import Image
 
+EXAMPLE_DIR: Final = Path(os.path.dirname(__file__))
+CACHE_DIR: Final = EXAMPLE_DIR / "cache"
 
-def track_pose(video_path: str, segment: bool) -> None:
+
+def track_pose(video_path: str, segment: bool, prompt: str) -> None:
     mp_pose = mp.solutions.pose
 
     rr.log_annotation_context(
@@ -39,6 +42,20 @@ def track_pose(video_path: str, segment: bool) -> None:
         [rr.AnnotationInfo(id=0, label="Background"), rr.AnnotationInfo(id=1, label="Person", color=(0, 0, 0))],
     )
     rr.log_view_coordinates("person", up="-Y", timeless=True)
+
+    # Initialize the stable diffusion pipeline
+    pipe = StableDiffusionDepth2ImgPipeline.from_pretrained(
+        "stabilityai/stable-diffusion-2-depth", local_files_only=False, cache_dir=CACHE_DIR.absolute()
+    )
+
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        pipe = pipe.to("mps")
+    elif torch.cuda.is_available():
+        pipe = pipe.to("cuda")
+    else:
+        pipe = pipe.to("cpu")
+
+    pipe.enable_attention_slicing()
 
     with closing(VideoSource(video_path)) as video_source, mp_pose.Pose(enable_segmentation=segment) as pose:
         for bgr_frame in video_source.stream_bgr():
@@ -60,6 +77,18 @@ def track_pose(video_path: str, segment: bool) -> None:
             segmentation_mask = results.segmentation_mask
             if segmentation_mask is not None:
                 rr.log_segmentation_image("video/mask", segmentation_mask)
+
+            # Apply style transfer to each frame
+            image = Image.fromarray(rgb)
+
+            pipe(
+                prompt=prompt,
+                strength=0.7,
+                guidance_scale=11,
+                negative_prompt="White uniform floor and background",
+                num_inference_steps=10,
+                image=image,
+            )
 
 
 def read_landmark_positions_2d(
@@ -121,11 +150,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Uses the MediaPipe Pose solution to track a human pose in video.")
     parser.add_argument("--video_path", type=str, default="data/test.mp4", help="Full path to video to run on.")
     parser.add_argument("--no-segment", action="store_true", help="Don't run person segmentation.")
+    parser.add_argument(
+        "--prompt",
+        type=str,
+        default="A tired robot sitting down on a dirt floor. Rusty metal. Unreal Engine. Wall-e",
+        help="Positive prompt describing the image you want to generate.",
+    )
     rr.script_add_args(parser)
 
     args = parser.parse_args()
     rr.script_setup(args, "rerun_example_human_pose_tracking")
-    track_pose(args.video_path, segment=not args.no_segment)
+    track_pose(args.video_path, segment=not args.no_segment, prompt=args.prompt)
     rr.script_teardown(args)
 
 
