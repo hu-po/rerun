@@ -25,7 +25,7 @@ EXAMPLE_DIR: Final = Path(os.path.dirname(__file__))
 CACHE_DIR: Final = EXAMPLE_DIR / "cache"
 
 
-def track_pose(video_path: str, segment: bool, prompt: str) -> None:
+def track_pose(args: argparse.Namespace) -> None:
     mp_pose = mp.solutions.pose
 
     rr.log_annotation_context(
@@ -57,7 +57,9 @@ def track_pose(video_path: str, segment: bool, prompt: str) -> None:
 
     pipe.enable_attention_slicing()
 
-    with closing(VideoSource(video_path)) as video_source, mp_pose.Pose(enable_segmentation=segment) as pose:
+    with closing(VideoSource(args.video_path)) as video_source, mp_pose.Pose(
+        enable_segmentation=not args.no_segment
+    ) as pose:
         for bgr_frame in video_source.stream_bgr():
             rgb = cv2.cvtColor(bgr_frame.data, cv2.COLOR_BGR2RGB)
             rr.set_time_seconds("time", bgr_frame.time)
@@ -82,11 +84,11 @@ def track_pose(video_path: str, segment: bool, prompt: str) -> None:
             image = Image.fromarray(rgb)
 
             pipe(
-                prompt=prompt,
-                strength=0.7,
-                guidance_scale=11,
-                negative_prompt="White uniform floor and background",
-                num_inference_steps=10,
+                prompt=args.prompt,
+                strength=args.strength,
+                guidance_scale=args.guidance_scale,
+                negative_prompt=args.n_prompt,
+                num_inference_steps=args.num_inference_steps,
                 image=image,
             )
 
@@ -155,6 +157,39 @@ def main() -> None:
         type=str,
         default="A tired robot sitting down on a dirt floor. Rusty metal. Unreal Engine. Wall-e",
         help="Positive prompt describing the image you want to generate.",
+    )
+    parser.add_argument(
+        "--strength",
+        type=float,
+        default=0.7,
+        help="""
+Conceptually, indicates how much to transform the reference `image`. Must be between 0 and 1. `image`
+will be used as a starting point, adding more noise to it the larger the `strength`. The number of
+denoising steps depends on the amount of noise initially added. When `strength` is 1, added noise will
+be maximum and the denoising process will run for the full number of iterations specified in
+`num_inference_steps`. A value of 1, therefore, essentially ignores `image`.
+""",
+    )
+    parser.add_argument(
+        "--guidance_scale",
+        type=float,
+        default=11,
+        help="""
+Guidance scale as defined in [Classifier-Free Diffusion Guidance](https://arxiv.org/abs/2207.12598).
+`guidance_scale` is defined as `w` of equation 2. of [Imagen
+Paper](https://arxiv.org/pdf/2205.11487.pdf). Guidance scale is enabled by setting `guidance_scale >
+1`. Higher guidance scale encourages to generate images that are closely linked to the text `prompt`,
+usually at the expense of lower image quality.
+""",
+    )
+    parser.add_argument(
+        "--num_inference_steps",
+        type=int,
+        default=10,
+        help="""
+The number of denoising steps. More denoising steps usually lead to a higher quality image at the
+expense of slower inference. This parameter will be modulated by `strength`.
+""",
     )
     rr.script_add_args(parser)
 
