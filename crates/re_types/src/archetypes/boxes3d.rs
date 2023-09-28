@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -17,7 +18,7 @@
 ///
 /// ## Examples
 ///
-/// Simple 3D boxes:
+/// ### Simple 3D boxes
 /// ```ignore
 /// //! Log a single 3D box.
 /// use rerun::archetypes::Boxes3D;
@@ -32,8 +33,15 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/box3d_simple/d6a3f38d2e3360fbacac52bb43e44762635be9c8/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/box3d_simple/d6a3f38d2e3360fbacac52bb43e44762635be9c8/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/box3d_simple/d6a3f38d2e3360fbacac52bb43e44762635be9c8/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/box3d_simple/d6a3f38d2e3360fbacac52bb43e44762635be9c8/1200w.png">
+///   <img src="https://static.rerun.io/box3d_simple/d6a3f38d2e3360fbacac52bb43e44762635be9c8/full.png">
+/// </picture>
 ///
-/// Batch of 3D boxes:
+/// ### Batch of 3D boxes
 /// ```ignore
 /// //! Log a batch of oriented bounding boxes.
 /// use rerun::{
@@ -70,6 +78,13 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/box3d_batch/28368d2872b2c98186a49fbd063b433e324a88ba/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/box3d_batch/28368d2872b2c98186a49fbd063b433e324a88ba/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/box3d_batch/28368d2872b2c98186a49fbd063b433e324a88ba/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/box3d_batch/28368d2872b2c98186a49fbd063b433e324a88ba/1200w.png">
+///   <img src="https://static.rerun.io/box3d_batch/28368d2872b2c98186a49fbd063b433e324a88ba/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct Boxes3D {
     /// All half-extents that make up the batch of boxes.
@@ -189,7 +204,7 @@ impl crate::Archetype for Boxes3D {
             .collect();
         let half_sizes = {
             let array = arrays_by_name
-                .get("half_sizes")
+                .get("rerun.components.HalfSizes3D")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.Boxes3D#half_sizes")?;
             <crate::components::HalfSizes3D>::from_arrow_opt(&**array)
@@ -199,7 +214,7 @@ impl crate::Archetype for Boxes3D {
                 .collect::<crate::DeserializationResult<Vec<_>>>()
                 .with_context("rerun.archetypes.Boxes3D#half_sizes")?
         };
-        let centers = if let Some(array) = arrays_by_name.get("centers") {
+        let centers = if let Some(array) = arrays_by_name.get("rerun.components.Position3D") {
             Some({
                 <crate::components::Position3D>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#centers")?
@@ -211,7 +226,7 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let rotations = if let Some(array) = arrays_by_name.get("rotations") {
+        let rotations = if let Some(array) = arrays_by_name.get("rerun.components.Rotation3D") {
             Some({
                 <crate::components::Rotation3D>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#rotations")?
@@ -223,7 +238,7 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let colors = if let Some(array) = arrays_by_name.get("colors") {
+        let colors = if let Some(array) = arrays_by_name.get("rerun.components.Color") {
             Some({
                 <crate::components::Color>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#colors")?
@@ -235,7 +250,7 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let radii = if let Some(array) = arrays_by_name.get("radii") {
+        let radii = if let Some(array) = arrays_by_name.get("rerun.components.Radius") {
             Some({
                 <crate::components::Radius>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#radii")?
@@ -247,7 +262,7 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let labels = if let Some(array) = arrays_by_name.get("labels") {
+        let labels = if let Some(array) = arrays_by_name.get("rerun.components.Text") {
             Some({
                 <crate::components::Text>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#labels")?
@@ -259,7 +274,7 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let class_ids = if let Some(array) = arrays_by_name.get("class_ids") {
+        let class_ids = if let Some(array) = arrays_by_name.get("rerun.components.ClassId") {
             Some({
                 <crate::components::ClassId>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#class_ids")?
@@ -271,7 +286,8 @@ impl crate::Archetype for Boxes3D {
         } else {
             None
         };
-        let instance_keys = if let Some(array) = arrays_by_name.get("instance_keys") {
+        let instance_keys = if let Some(array) = arrays_by_name.get("rerun.components.InstanceKey")
+        {
             Some({
                 <crate::components::InstanceKey>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Boxes3D#instance_keys")?

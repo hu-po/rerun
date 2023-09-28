@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -57,6 +58,13 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/segmentation_image_simple/eb49e0b8cb870c75a69e2a47a2d202e5353115f6/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/segmentation_image_simple/eb49e0b8cb870c75a69e2a47a2d202e5353115f6/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/segmentation_image_simple/eb49e0b8cb870c75a69e2a47a2d202e5353115f6/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/segmentation_image_simple/eb49e0b8cb870c75a69e2a47a2d202e5353115f6/1200w.png">
+///   <img src="https://static.rerun.io/segmentation_image_simple/eb49e0b8cb870c75a69e2a47a2d202e5353115f6/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct SegmentationImage {
     /// The image data. Should always be a rank-2 tensor.
@@ -145,7 +153,7 @@ impl crate::Archetype for SegmentationImage {
             .collect();
         let data = {
             let array = arrays_by_name
-                .get("data")
+                .get("rerun.components.TensorData")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.SegmentationImage#data")?;
             <crate::components::TensorData>::from_arrow_opt(&**array)
@@ -156,7 +164,7 @@ impl crate::Archetype for SegmentationImage {
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.SegmentationImage#data")?
         };
-        let draw_order = if let Some(array) = arrays_by_name.get("draw_order") {
+        let draw_order = if let Some(array) = arrays_by_name.get("rerun.components.DrawOrder") {
             Some({
                 <crate::components::DrawOrder>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.SegmentationImage#draw_order")?

@@ -8,12 +8,13 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
 #![allow(clippy::unnecessary_cast)]
 
-/// Log a double-precision scalar that will be visualized as a timeseries plot.
+/// Log a double-precision scalar that will be visualized as a time-series plot.
 ///
 /// The current simulation time will be used for the time/X-axis, hence scalars
 /// cannot be timeless!
@@ -216,7 +217,7 @@ impl crate::Archetype for TimeSeriesScalar {
             .collect();
         let scalar = {
             let array = arrays_by_name
-                .get("scalar")
+                .get("rerun.components.Scalar")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.TimeSeriesScalar#scalar")?;
             <crate::components::Scalar>::from_arrow_opt(&**array)
@@ -227,7 +228,7 @@ impl crate::Archetype for TimeSeriesScalar {
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.TimeSeriesScalar#scalar")?
         };
-        let radius = if let Some(array) = arrays_by_name.get("radius") {
+        let radius = if let Some(array) = arrays_by_name.get("rerun.components.Radius") {
             Some({
                 <crate::components::Radius>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.TimeSeriesScalar#radius")?
@@ -240,7 +241,7 @@ impl crate::Archetype for TimeSeriesScalar {
         } else {
             None
         };
-        let color = if let Some(array) = arrays_by_name.get("color") {
+        let color = if let Some(array) = arrays_by_name.get("rerun.components.Color") {
             Some({
                 <crate::components::Color>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.TimeSeriesScalar#color")?
@@ -253,7 +254,7 @@ impl crate::Archetype for TimeSeriesScalar {
         } else {
             None
         };
-        let label = if let Some(array) = arrays_by_name.get("label") {
+        let label = if let Some(array) = arrays_by_name.get("rerun.components.Text") {
             Some({
                 <crate::components::Text>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.TimeSeriesScalar#label")?
@@ -266,7 +267,8 @@ impl crate::Archetype for TimeSeriesScalar {
         } else {
             None
         };
-        let scattered = if let Some(array) = arrays_by_name.get("scattered") {
+        let scattered = if let Some(array) = arrays_by_name.get("rerun.components.ScalarScattering")
+        {
             Some({
                 <crate::components::ScalarScattering>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.TimeSeriesScalar#scattered")?

@@ -10,6 +10,7 @@ use rayon::prelude::*;
 use crate::{
     codegen::{
         autogen_warning,
+        common::collect_examples,
         rust::{
             arrow::ArrowDataTypeTokenizer,
             deserializer::{
@@ -19,7 +20,7 @@ use crate::{
             serializer::quote_arrow_serializer,
             util::{is_tuple_struct_from_obj, iter_archetype_components},
         },
-        Examples, StringExt as _,
+        StringExt as _,
     },
     ArrowRegistry, CodeGenerator, Docs, ElementType, Object, ObjectField, ObjectKind, Objects,
     Reporter, Type, ATTR_RERUN_COMPONENT_OPTIONAL, ATTR_RERUN_COMPONENT_RECOMMENDED,
@@ -156,6 +157,7 @@ fn generate_object_file(
     code.push_str("#![allow(clippy::map_flatten)]\n");
     code.push_str("#![allow(clippy::match_wildcard_for_single_variants)]\n");
     code.push_str("#![allow(clippy::needless_question_mark)]\n");
+    code.push_str("#![allow(clippy::new_without_default)]\n");
     code.push_str("#![allow(clippy::redundant_closure)]\n");
     code.push_str("#![allow(clippy::too_many_arguments)]\n");
     code.push_str("#![allow(clippy::too_many_lines)]\n");
@@ -489,10 +491,6 @@ impl quote::ToTokens for ObjectFieldTokenizer<'_> {
     }
 }
 
-fn collect_examples(docs: &Docs) -> anyhow::Result<Examples> {
-    Examples::collect(docs, "rs", &["```ignore"], &["```"])
-}
-
 fn quote_doc_from_docs(reporter: &Reporter, docs: &Docs) -> TokenStream {
     struct DocCommentTokenizer<'a>(&'a [String]);
 
@@ -504,19 +502,39 @@ fn quote_doc_from_docs(reporter: &Reporter, docs: &Docs) -> TokenStream {
 
     let mut lines = crate::codegen::get_documentation(docs, &["rs", "rust"]);
 
-    let examples = collect_examples(docs)
+    let examples = collect_examples(docs, "rs", true)
         .map_err(|err| reporter.error(err))
         .unwrap_or_default();
     if !examples.is_empty() {
         lines.push(" ".into());
-        let section_title = if examples.count == 1 {
+        let section_title = if examples.len() == 1 {
             "Example"
         } else {
             "Examples"
         };
         lines.push(format!(" ## {section_title}"));
         lines.push(" ".into());
-        lines.extend(examples.lines.into_iter().map(|line| format!(" {line}")));
+        let mut examples = examples.into_iter().peekable();
+        while let Some(example) = examples.next() {
+            if let Some(title) = example.base.title {
+                lines.push(format!(" ### {title}"));
+            }
+            lines.push(" ```ignore".into());
+            lines.extend(example.lines.into_iter().map(|line| format!(" {line}")));
+            lines.push(" ```".into());
+            if let Some(image) = &example.base.image {
+                lines.extend(
+                    image
+                        .image_stack()
+                        .into_iter()
+                        .map(|line| format!(" {line}")),
+                );
+            }
+            if examples.peek().is_some() {
+                // blank line between examples
+                lines.push(" ".into());
+            }
+        }
     }
 
     let lines = DocCommentTokenizer(&lines);
@@ -783,22 +801,21 @@ fn quote_trait_impls_from_obj(
                 (num_components, quoted_components)
             }
 
-            let first_required_comp = obj
-                .fields
-                .iter()
-                .find(|field| {
-                    field
-                        .try_get_attr::<String>(ATTR_RERUN_COMPONENT_REQUIRED)
-                        .is_some()
-                })
-                // NOTE: must have at least one required component.
-                .unwrap();
+            let first_required_comp = obj.fields.iter().find(|field| {
+                field
+                    .try_get_attr::<String>(ATTR_RERUN_COMPONENT_REQUIRED)
+                    .is_some()
+            });
 
-            let num_instances = if first_required_comp.typ.is_plural() {
-                let name = format_ident!("{}", first_required_comp.name);
-                quote!(self.#name.len())
+            let num_instances = if let Some(comp) = first_required_comp {
+                if comp.typ.is_plural() {
+                    let name = format_ident!("{}", comp.name);
+                    quote!(self.#name.len())
+                } else {
+                    quote!(1)
+                }
             } else {
-                quote!(1)
+                quote!(0)
             };
 
             let indicator_name = format!("{}Indicator", obj.name);
@@ -858,7 +875,7 @@ fn quote_trait_impls_from_obj(
             let all_deserializers = {
                 obj.fields.iter().map(|obj_field| {
                     let obj_field_fqname = obj_field.fqname.as_str();
-                    let field_name_str = &obj_field.name;
+                    let field_typ_fqname_str = obj_field.typ.fqname().unwrap();
                     let field_name = format_ident!("{}", obj_field.name);
 
                     let is_plural = obj_field.typ.is_plural();
@@ -884,9 +901,11 @@ fn quote_trait_impls_from_obj(
                         }
                     };
 
+                    // NOTE: An archetype cannot have overlapped component types by definition, so use the
+                    // component's fqname to do the mapping.
                     let quoted_deser = if is_nullable {
                         quote! {
-                            if let Some(array) = arrays_by_name.get(#field_name_str) {
+                            if let Some(array) = arrays_by_name.get(#field_typ_fqname_str) {
                                 Some({
                                     <#component>::from_arrow_opt(&**array)
                                         .with_context(#obj_field_fqname)?
@@ -899,7 +918,7 @@ fn quote_trait_impls_from_obj(
                     } else {
                         quote! {{
                             let array = arrays_by_name
-                                .get(#field_name_str)
+                                .get(#field_typ_fqname_str)
                                 .ok_or_else(crate::DeserializationError::missing_data)
                                 .with_context(#obj_field_fqname)?;
 
@@ -974,8 +993,7 @@ fn quote_trait_impls_from_obj(
 
                         let arrays_by_name: ::std::collections::HashMap<_, _> = arrow_data
                             .into_iter()
-                            .map(|(field, array)| (field.name, array))
-                            .collect();
+                            .map(|(field, array)| (field.name, array)).collect();
 
                         #(#all_deserializers;)*
 

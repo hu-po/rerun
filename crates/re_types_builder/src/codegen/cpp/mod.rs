@@ -13,7 +13,7 @@ use rayon::prelude::*;
 
 use crate::codegen::common::write_file;
 use crate::{
-    codegen::{autogen_warning, Examples},
+    codegen::{autogen_warning, common::collect_examples},
     ArrowRegistry, Docs, ElementType, ObjectField, ObjectKind, Objects, Type,
 };
 use crate::{Object, ObjectSpecifics, Reporter, ATTR_CPP_NO_FIELD_CTORS};
@@ -412,7 +412,9 @@ impl QuotedObject {
                     .collect_vec();
 
                 // Constructors with all required components.
-                if !obj.is_attr_set(ATTR_CPP_NO_FIELD_CTORS) {
+                if !required_component_fields.is_empty()
+                    && !obj.is_attr_set(ATTR_CPP_NO_FIELD_CTORS)
+                {
                     let (arguments, assignments): (Vec<_>, Vec<_>) = required_component_fields
                         .iter()
                         .map(|obj_field| {
@@ -518,12 +520,16 @@ impl QuotedObject {
 
                 // Num instances gives the number of primary instances.
                 {
-                    let first_required_field = required_component_fields.first().unwrap();
-                    let first_required_field_name = &format_ident!("{}", first_required_field.name);
-                    let definition_body = if first_required_field.typ.is_plural() {
-                        quote!(return #first_required_field_name.size();)
+                    let first_required_field = required_component_fields.first();
+                    let definition_body = if let Some(field) = first_required_field {
+                        let first_required_field_name = &format_ident!("{}", field.name);
+                        if field.typ.is_plural() {
+                            quote!(return #first_required_field_name.size();)
+                        } else {
+                            quote!(return 1;)
+                        }
                     } else {
-                        quote!(return 1;)
+                        quote!(return 0;)
                     };
                     methods.push(Method {
                         docs: "Returns the number of primary instances of this archetype.".into(),
@@ -1921,25 +1927,33 @@ fn quote_fqname_as_type_path(includes: &mut Includes, fqname: &str) -> TokenStre
     quote!(#expr)
 }
 
-fn collect_examples(docs: &Docs) -> Examples {
-    // TODO(#2919): `cpp` examples are not required for now, so just default to empty
-    Examples::collect(docs, "cpp", &["```cpp,ignore"], &["```"]).unwrap_or_default()
-}
-
 fn quote_docstrings(docs: &Docs) -> TokenStream {
     let mut lines = crate::codegen::get_documentation(docs, &["cpp", "c++"]);
 
-    let examples = collect_examples(docs);
+    let required = false; // TODO(#2919): `cpp` examples are not required for now
+    let examples = collect_examples(docs, "cpp", required).unwrap_or_default();
     if !examples.is_empty() {
         lines.push(String::new());
-        let section_title = if examples.count == 1 {
+        let section_title = if examples.len() == 1 {
             "Example"
         } else {
             "Examples"
         };
         lines.push(format!("## {section_title}"));
         lines.push(String::new());
-        lines.extend(examples.lines.into_iter().map(|line| format!(" {line}")));
+        let mut examples = examples.into_iter().peekable();
+        while let Some(example) = examples.next() {
+            if let Some(title) = example.base.title {
+                lines.push(format!(" ### {title}"));
+            }
+            lines.push(" ```cpp,ignore".into());
+            lines.extend(example.lines.iter().map(|line| format!(" {line}")));
+            lines.push(" ```".into());
+            if examples.peek().is_some() {
+                // blank line between examples
+                lines.push(String::new());
+            }
+        }
     }
 
     let quoted_lines = lines.iter().map(|docstring| quote_doc_comment(docstring));

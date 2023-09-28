@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -17,7 +18,70 @@
 ///
 /// ## Examples
 ///
-/// Many strips:
+/// ```ignore
+/// //! Log a simple line strip.
+///
+/// use rerun::{
+///     archetypes::{Boxes2D, LineStrips2D},
+///     RecordingStreamBuilder,
+/// };
+///
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let (rec, storage) = RecordingStreamBuilder::new("rerun_example_line_strip2d").memory()?;
+///
+///     let points = [[0., 0.], [2., 1.], [4., -1.], [6., 0.]];
+///     rec.log("strip", &LineStrips2D::new([points]))?;
+///
+///     // Log an extra rect to set the view bounds
+///     rec.log(
+///         "bounds",
+///         &Boxes2D::from_centers_and_sizes([(3., 0.)], [(8., 6.)]),
+///     )?;
+///
+///     rerun::native_viewer::show(storage.take())?;
+///     Ok(())
+/// }
+/// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/line_strip2d_simple/c4e6ce937544e66b497450fd64ac3ac2f244f0e1/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/line_strip2d_simple/c4e6ce937544e66b497450fd64ac3ac2f244f0e1/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/line_strip2d_simple/c4e6ce937544e66b497450fd64ac3ac2f244f0e1/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/line_strip2d_simple/c4e6ce937544e66b497450fd64ac3ac2f244f0e1/1200w.png">
+///   <img src="https://static.rerun.io/line_strip2d_simple/c4e6ce937544e66b497450fd64ac3ac2f244f0e1/full.png">
+/// </picture>
+///
+/// ```ignore
+/// //! Log a couple 2D line segments using 2D line strips.
+///
+/// use rerun::{
+///     archetypes::{Boxes2D, LineStrips2D},
+///     RecordingStreamBuilder,
+/// };
+///
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let (rec, storage) = RecordingStreamBuilder::new("rerun_example_line_segments2d").memory()?;
+///
+///     let points = [[0., 0.], [2., 1.], [4., -1.], [6., 0.]];
+///     rec.log("segments", &LineStrips2D::new(points.chunks(2)))?;
+///
+///     // Log an extra rect to set the view bounds
+///     rec.log(
+///         "bounds",
+///         &Boxes2D::from_centers_and_sizes([(3.0, 0.0)], [(8.0, 6.0)]),
+///     )?;
+///
+///     rerun::native_viewer::show(storage.take())?;
+///     Ok(())
+/// }
+/// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/line_segment2d_simple/53df596662dd9ffaaea5d09d091ef95220346c83/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/line_segment2d_simple/53df596662dd9ffaaea5d09d091ef95220346c83/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/line_segment2d_simple/53df596662dd9ffaaea5d09d091ef95220346c83/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/line_segment2d_simple/53df596662dd9ffaaea5d09d091ef95220346c83/1200w.png">
+///   <img src="https://static.rerun.io/line_segment2d_simple/53df596662dd9ffaaea5d09d091ef95220346c83/full.png">
+/// </picture>
+///
 /// ```ignore
 /// //! Log a batch of 2d line strips.
 ///
@@ -50,32 +114,13 @@
 ///     Ok(())
 /// }
 /// ```
-///
-/// Many individual segments:
-/// ```ignore
-/// //! Log a couple 2D line segments using 2D line strips.
-///
-/// use rerun::{
-///     archetypes::{Boxes2D, LineStrips2D},
-///     RecordingStreamBuilder,
-/// };
-///
-/// fn main() -> Result<(), Box<dyn std::error::Error>> {
-///     let (rec, storage) = RecordingStreamBuilder::new("rerun_example_line_segments2d").memory()?;
-///
-///     let points = [[0., 0.], [2., 1.], [4., -1.], [6., 0.]];
-///     rec.log("segments", &LineStrips2D::new(points.chunks(2)))?;
-///
-///     // Log an extra rect to set the view bounds
-///     rec.log(
-///         "bounds",
-///         &Boxes2D::from_centers_and_sizes([(3.0, 0.0)], [(8.0, 6.0)]),
-///     )?;
-///
-///     rerun::native_viewer::show(storage.take())?;
-///     Ok(())
-/// }
-/// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/line_strip2d_batch/d8aae7ca3d6c3b0e3b636de60b8067fa2f0b6db9/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/line_strip2d_batch/d8aae7ca3d6c3b0e3b636de60b8067fa2f0b6db9/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/line_strip2d_batch/d8aae7ca3d6c3b0e3b636de60b8067fa2f0b6db9/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/line_strip2d_batch/d8aae7ca3d6c3b0e3b636de60b8067fa2f0b6db9/1200w.png">
+///   <img src="https://static.rerun.io/line_strip2d_batch/d8aae7ca3d6c3b0e3b636de60b8067fa2f0b6db9/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct LineStrips2D {
     /// All the actual 2D line strips that make up the batch.
@@ -193,7 +238,7 @@ impl crate::Archetype for LineStrips2D {
             .collect();
         let strips = {
             let array = arrays_by_name
-                .get("strips")
+                .get("rerun.components.LineStrip2D")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.LineStrips2D#strips")?;
             <crate::components::LineStrip2D>::from_arrow_opt(&**array)
@@ -203,7 +248,7 @@ impl crate::Archetype for LineStrips2D {
                 .collect::<crate::DeserializationResult<Vec<_>>>()
                 .with_context("rerun.archetypes.LineStrips2D#strips")?
         };
-        let radii = if let Some(array) = arrays_by_name.get("radii") {
+        let radii = if let Some(array) = arrays_by_name.get("rerun.components.Radius") {
             Some({
                 <crate::components::Radius>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#radii")?
@@ -215,7 +260,7 @@ impl crate::Archetype for LineStrips2D {
         } else {
             None
         };
-        let colors = if let Some(array) = arrays_by_name.get("colors") {
+        let colors = if let Some(array) = arrays_by_name.get("rerun.components.Color") {
             Some({
                 <crate::components::Color>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#colors")?
@@ -227,7 +272,7 @@ impl crate::Archetype for LineStrips2D {
         } else {
             None
         };
-        let labels = if let Some(array) = arrays_by_name.get("labels") {
+        let labels = if let Some(array) = arrays_by_name.get("rerun.components.Text") {
             Some({
                 <crate::components::Text>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#labels")?
@@ -239,7 +284,7 @@ impl crate::Archetype for LineStrips2D {
         } else {
             None
         };
-        let draw_order = if let Some(array) = arrays_by_name.get("draw_order") {
+        let draw_order = if let Some(array) = arrays_by_name.get("rerun.components.DrawOrder") {
             Some({
                 <crate::components::DrawOrder>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#draw_order")?
@@ -252,7 +297,7 @@ impl crate::Archetype for LineStrips2D {
         } else {
             None
         };
-        let class_ids = if let Some(array) = arrays_by_name.get("class_ids") {
+        let class_ids = if let Some(array) = arrays_by_name.get("rerun.components.ClassId") {
             Some({
                 <crate::components::ClassId>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#class_ids")?
@@ -264,7 +309,8 @@ impl crate::Archetype for LineStrips2D {
         } else {
             None
         };
-        let instance_keys = if let Some(array) = arrays_by_name.get("instance_keys") {
+        let instance_keys = if let Some(array) = arrays_by_name.get("rerun.components.InstanceKey")
+        {
             Some({
                 <crate::components::InstanceKey>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.LineStrips2D#instance_keys")?

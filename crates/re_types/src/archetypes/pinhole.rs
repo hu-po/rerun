@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -42,6 +43,13 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/pinhole_simple/9af9441a94bcd9fd54e1fea44fb0c59ff381a7f2/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/pinhole_simple/9af9441a94bcd9fd54e1fea44fb0c59ff381a7f2/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/pinhole_simple/9af9441a94bcd9fd54e1fea44fb0c59ff381a7f2/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/pinhole_simple/9af9441a94bcd9fd54e1fea44fb0c59ff381a7f2/1200w.png">
+///   <img src="https://static.rerun.io/pinhole_simple/9af9441a94bcd9fd54e1fea44fb0c59ff381a7f2/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct Pinhole {
     /// Camera projection, from image coordinates to view coordinates.
@@ -171,7 +179,7 @@ impl crate::Archetype for Pinhole {
             .collect();
         let image_from_camera = {
             let array = arrays_by_name
-                .get("image_from_camera")
+                .get("rerun.components.PinholeProjection")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.Pinhole#image_from_camera")?;
             <crate::components::PinholeProjection>::from_arrow_opt(&**array)
@@ -182,7 +190,7 @@ impl crate::Archetype for Pinhole {
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.Pinhole#image_from_camera")?
         };
-        let resolution = if let Some(array) = arrays_by_name.get("resolution") {
+        let resolution = if let Some(array) = arrays_by_name.get("rerun.components.Resolution") {
             Some({
                 <crate::components::Resolution>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Pinhole#resolution")?
@@ -195,7 +203,8 @@ impl crate::Archetype for Pinhole {
         } else {
             None
         };
-        let camera_xyz = if let Some(array) = arrays_by_name.get("camera_xyz") {
+        let camera_xyz = if let Some(array) = arrays_by_name.get("rerun.components.ViewCoordinates")
+        {
             Some({
                 <crate::components::ViewCoordinates>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Pinhole#camera_xyz")?

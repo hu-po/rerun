@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -15,7 +16,7 @@
 
 /// A 3D point cloud with positions and optional colors, radii, labels, etc.
 ///
-/// ## Example
+/// ## Examples
 ///
 /// ```ignore
 /// //! Log some very simple points.
@@ -31,6 +32,45 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/point3d_simple/32fb3e9b65bea8bd7ffff95ad839f2f8a157a933/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/point3d_simple/32fb3e9b65bea8bd7ffff95ad839f2f8a157a933/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/point3d_simple/32fb3e9b65bea8bd7ffff95ad839f2f8a157a933/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/point3d_simple/32fb3e9b65bea8bd7ffff95ad839f2f8a157a933/1200w.png">
+///   <img src="https://static.rerun.io/point3d_simple/32fb3e9b65bea8bd7ffff95ad839f2f8a157a933/full.png">
+/// </picture>
+///
+/// ```ignore
+/// //! Log some random points with color and radii.
+///
+/// use rand::distributions::Uniform;
+/// use rand::Rng;
+/// use rerun::{archetypes::Points3D, components::Color, RecordingStreamBuilder};
+///
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
+///     let (rec, storage) = RecordingStreamBuilder::new("rerun_example_points3d_random").memory()?;
+///
+///     let mut rng = rand::thread_rng();
+///     let dist = Uniform::new(-5., 5.);
+///
+///     rec.log(
+///         "random",
+///         &Points3D::new((0..10).map(|_| (rng.sample(dist), rng.sample(dist), rng.sample(dist))))
+///             .with_colors((0..10).map(|_| Color::from_rgb(rng.gen(), rng.gen(), rng.gen())))
+///             .with_radii((0..10).map(|_| rng.gen::<f32>())),
+///     )?;
+///
+///     rerun::native_viewer::show(storage.take())?;
+///     Ok(())
+/// }
+/// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/point3d_random/7e94e1806d2c381943748abbb3bedb68d564de24/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/point3d_random/7e94e1806d2c381943748abbb3bedb68d564de24/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/point3d_random/7e94e1806d2c381943748abbb3bedb68d564de24/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/point3d_random/7e94e1806d2c381943748abbb3bedb68d564de24/1200w.png">
+///   <img src="https://static.rerun.io/point3d_random/7e94e1806d2c381943748abbb3bedb68d564de24/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct Points3D {
     /// All the 3D positions at which the point cloud shows points.
@@ -154,7 +194,7 @@ impl crate::Archetype for Points3D {
             .collect();
         let positions = {
             let array = arrays_by_name
-                .get("positions")
+                .get("rerun.components.Position3D")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.Points3D#positions")?;
             <crate::components::Position3D>::from_arrow_opt(&**array)
@@ -164,7 +204,7 @@ impl crate::Archetype for Points3D {
                 .collect::<crate::DeserializationResult<Vec<_>>>()
                 .with_context("rerun.archetypes.Points3D#positions")?
         };
-        let radii = if let Some(array) = arrays_by_name.get("radii") {
+        let radii = if let Some(array) = arrays_by_name.get("rerun.components.Radius") {
             Some({
                 <crate::components::Radius>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#radii")?
@@ -176,7 +216,7 @@ impl crate::Archetype for Points3D {
         } else {
             None
         };
-        let colors = if let Some(array) = arrays_by_name.get("colors") {
+        let colors = if let Some(array) = arrays_by_name.get("rerun.components.Color") {
             Some({
                 <crate::components::Color>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#colors")?
@@ -188,7 +228,7 @@ impl crate::Archetype for Points3D {
         } else {
             None
         };
-        let labels = if let Some(array) = arrays_by_name.get("labels") {
+        let labels = if let Some(array) = arrays_by_name.get("rerun.components.Text") {
             Some({
                 <crate::components::Text>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#labels")?
@@ -200,7 +240,7 @@ impl crate::Archetype for Points3D {
         } else {
             None
         };
-        let class_ids = if let Some(array) = arrays_by_name.get("class_ids") {
+        let class_ids = if let Some(array) = arrays_by_name.get("rerun.components.ClassId") {
             Some({
                 <crate::components::ClassId>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#class_ids")?
@@ -212,7 +252,7 @@ impl crate::Archetype for Points3D {
         } else {
             None
         };
-        let keypoint_ids = if let Some(array) = arrays_by_name.get("keypoint_ids") {
+        let keypoint_ids = if let Some(array) = arrays_by_name.get("rerun.components.KeypointId") {
             Some({
                 <crate::components::KeypointId>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#keypoint_ids")?
@@ -224,7 +264,8 @@ impl crate::Archetype for Points3D {
         } else {
             None
         };
-        let instance_keys = if let Some(array) = arrays_by_name.get("instance_keys") {
+        let instance_keys = if let Some(array) = arrays_by_name.get("rerun.components.InstanceKey")
+        {
             Some({
                 <crate::components::InstanceKey>::from_arrow_opt(&**array)
                     .with_context("rerun.archetypes.Points3D#instance_keys")?

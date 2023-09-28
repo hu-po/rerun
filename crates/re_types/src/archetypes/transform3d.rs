@@ -8,6 +8,7 @@
 #![allow(clippy::map_flatten)]
 #![allow(clippy::match_wildcard_for_single_variants)]
 #![allow(clippy::needless_question_mark)]
+#![allow(clippy::new_without_default)]
 #![allow(clippy::redundant_closure)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::too_many_lines)]
@@ -65,6 +66,13 @@
 ///     Ok(())
 /// }
 /// ```
+/// <picture>
+///   <source media="(max-width: 480px)" srcset="https://static.rerun.io/transform3d_simple/141368b07360ce3fcb1553079258ae3f42bdb9ac/480w.png">
+///   <source media="(max-width: 768px)" srcset="https://static.rerun.io/transform3d_simple/141368b07360ce3fcb1553079258ae3f42bdb9ac/768w.png">
+///   <source media="(max-width: 1024px)" srcset="https://static.rerun.io/transform3d_simple/141368b07360ce3fcb1553079258ae3f42bdb9ac/1024w.png">
+///   <source media="(max-width: 1200px)" srcset="https://static.rerun.io/transform3d_simple/141368b07360ce3fcb1553079258ae3f42bdb9ac/1200w.png">
+///   <img src="https://static.rerun.io/transform3d_simple/141368b07360ce3fcb1553079258ae3f42bdb9ac/full.png">
+/// </picture>
 #[derive(Clone, Debug, PartialEq)]
 pub struct Transform3D {
     /// The transform
@@ -143,7 +151,7 @@ impl crate::Archetype for Transform3D {
             .collect();
         let transform = {
             let array = arrays_by_name
-                .get("transform")
+                .get("rerun.components.Transform3D")
                 .ok_or_else(crate::DeserializationError::missing_data)
                 .with_context("rerun.archetypes.Transform3D#transform")?;
             <crate::components::Transform3D>::from_arrow_opt(&**array)
